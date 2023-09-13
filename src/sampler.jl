@@ -75,9 +75,11 @@ function Adaptation.adapt!(
     adaptor::AbstractAdaptor,
     i::Int,
     n_adapts::Int,
-    θ::AbstractVecOrMat{<:AbstractFloat},
+    z::PhasePoint,
+    # θ::AbstractVecOrMat{<:AbstractFloat},
     α::AbstractScalarOrVec{<:AbstractFloat},
 )
+    θ = z.θ
     isadapted = false
     if i <= n_adapts
         i == 1 && Adaptation.initialize!(adaptor, n_adapts)
@@ -90,11 +92,36 @@ function Adaptation.adapt!(
     return h, κ, isadapted
 end
 
+# Nutpie adaptor requires access to gradients in the Hamiltonian
+function Adaptation.adapt!(
+    h::Hamiltonian,
+    κ::AbstractMCMCKernel,
+    adaptor::AbstractHMCAdaptorWithGradients,
+    i::Int,
+    n_adapts::Int,
+    z::PhasePoint,
+    # θ::AbstractVecOrMat{<:AbstractFloat},
+    α::AbstractScalarOrVec{<:AbstractFloat},
+)
+    θ = z.θ
+    ∇logπ = z.ℓπ.gradient
+    isadapted = false
+    if i <= n_adapts
+        i == 1 && Adaptation.initialize!(adaptor, n_adapts,∇logπ)
+        adapt!(adaptor, θ, α,∇logπ)
+        i == n_adapts && finalize!(adaptor)
+        h = update(h, adaptor)
+        κ = update(κ, adaptor)
+        isadapted = true
+    end
+    return h, κ, isadapted
+end
+
 """
 Progress meter update with all trajectory stats, iteration number and metric shown.
 """
 function pm_next!(pm, stat::NamedTuple)
-    ProgressMeter.next!(pm; showvalues = [tuple(s...) for s in pairs(stat)])
+    ProgressMeter.next!(pm; showvalues=[tuple(s...) for s in pairs(stat)])
 end
 
 """
@@ -111,12 +138,12 @@ sample(
     κ::AbstractMCMCKernel,
     θ::AbstractVecOrMat{<:AbstractFloat},
     n_samples::Int,
-    adaptor::AbstractAdaptor = NoAdaptation(),
-    n_adapts::Int = min(div(n_samples, 10), 1_000);
-    drop_warmup = false,
-    verbose::Bool = true,
-    progress::Bool = false,
-    (pm_next!)::Function = pm_next!,
+    adaptor::AbstractAdaptor=NoAdaptation(),
+    n_adapts::Int=min(div(n_samples, 10), 1_000);
+    drop_warmup=false,
+    verbose::Bool=true,
+    progress::Bool=false,
+    (pm_next!)::Function=pm_next!
 ) = sample(
     GLOBAL_RNG,
     h,
@@ -125,10 +152,10 @@ sample(
     n_samples,
     adaptor,
     n_adapts;
-    drop_warmup = drop_warmup,
-    verbose = verbose,
-    progress = progress,
-    (pm_next!) = pm_next!,
+    drop_warmup=drop_warmup,
+    verbose=verbose,
+    progress=progress,
+    (pm_next!)=pm_next!
 )
 
 """
@@ -160,12 +187,12 @@ function sample(
     κ::HMCKernel,
     θ::T,
     n_samples::Int,
-    adaptor::AbstractAdaptor = NoAdaptation(),
-    n_adapts::Int = min(div(n_samples, 10), 1_000);
-    drop_warmup = false,
-    verbose::Bool = true,
-    progress::Bool = false,
-    (pm_next!)::Function = pm_next!,
+    adaptor::AbstractAdaptor=NoAdaptation(),
+    n_adapts::Int=min(div(n_samples, 10), 1_000);
+    drop_warmup=false,
+    verbose::Bool=true,
+    progress::Bool=false,
+    (pm_next!)::Function=pm_next!
 ) where {T<:AbstractVecOrMat{<:AbstractFloat}}
     @assert !(drop_warmup && (adaptor isa Adaptation.NoAdaptation)) "Cannot drop warmup samples if there is no adaptation phase."
     # Prepare containers to store sampling results
@@ -177,7 +204,7 @@ function sample(
     h, t = sample_init(rng, h, θ)
     # Progress meter
     pm =
-        progress ? ProgressMeter.Progress(n_samples, desc = "Sampling", barlen = 31) :
+        progress ? ProgressMeter.Progress(n_samples, desc="Sampling", barlen=31) :
         nothing
     time = @elapsed for i = 1:n_samples
         # Make a transition
@@ -185,13 +212,13 @@ function sample(
         # Adapt h and κ; what mutable is the adaptor
         tstat = stat(t)
         h, κ, isadapted =
-            adapt!(h, κ, adaptor, i, n_adapts, t.z.θ, tstat.acceptance_rate)
+            adapt!(h, κ, adaptor, i, n_adapts, t.z, tstat.acceptance_rate)
         if isadapted
             num_divergent_transitions_during_adaption += tstat.numerical_error
         else
             num_divergent_transitions += tstat.numerical_error
         end
-        tstat = merge(tstat, (is_adapt = isadapted,))
+        tstat = merge(tstat, (is_adapt=isadapted,))
         # Update progress meter
         if progress
             percentage_divergent_transitions = num_divergent_transitions / i
@@ -205,17 +232,17 @@ function sample(
             pm_next!(
                 pm,
                 (
-                    iterations = i,
-                    ratio_divergent_transitions = round(
+                    iterations=i,
+                    ratio_divergent_transitions=round(
                         percentage_divergent_transitions;
-                        digits = 2,
+                        digits=2
                     ),
-                    ratio_divergent_transitions_during_adaption = round(
+                    ratio_divergent_transitions_during_adaption=round(
                         percentage_divergent_transitions_during_adaption;
-                        digits = 2,
+                        digits=2
                     ),
                     tstat...,
-                    mass_matrix = h.metric,
+                    mass_matrix=h.metric,
                 ),
             )
             # Report finish of adapation

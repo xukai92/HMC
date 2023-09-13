@@ -5,16 +5,17 @@ using LinearAlgebra: LinearAlgebra
 using Statistics: Statistics
 using SimpleUnPack: @unpack, @pack!
 
-using ..AdvancedHMC: DEBUG, AbstractScalarOrVec
+using ..AdvancedHMC: DEBUG, AbstractScalarOrVec, PhasePoint
 
 abstract type AbstractAdaptor end
+abstract type AbstractHMCAdaptorWithGradients <: AbstractAdaptor end
 function getM⁻¹ end
 function getϵ end
 function adapt! end
 function reset! end
 function initialize! end
 function finalize! end
-export AbstractAdaptor, adapt!, initialize!, finalize!, reset!, getϵ, getM⁻¹
+export AbstractAdaptor, AbstractHMCAdaptorWithGradients, adapt!, initialize!, finalize!, reset!, getϵ, getM⁻¹
 
 struct NoAdaptation <: AbstractAdaptor end
 export NoAdaptation
@@ -56,5 +57,12 @@ finalize!(aca::NaiveHMCAdaptor) = finalize!(aca.ssa)
 
 include("stan_adaptor.jl")
 export NaiveHMCAdaptor, StanHMCAdaptor
+
+const LOWER_LIMIT::Float64 = 1e-10
+const UPPER_LIMIT::Float64 = 1e10
+
+include("nutpie_adaptor.jl")
+export NutpieHMCAdaptor, ExpWeightedWelfordVar, NutpieHMCAdaptorNoSwitch, NutpieHMCAdaptorNoGradInit,NutpieHMCAdaptorNoSwitchNoGradInit
+
 
 end # module
