@@ -39,12 +39,10 @@ struct DiagEuclideanMetric{T,A<:AbstractVecOrMat{T}} <: AbstractMetric
     M⁻¹::A
     # Sqare root of the inverse of the mass matrix
     sqrtM⁻¹::A
-    # Pre-allocation for intermediate variables
-    _temp::A
 end
 
 function DiagEuclideanMetric(M⁻¹::AbstractVecOrMat{T}) where {T<:AbstractFloat}
-    return DiagEuclideanMetric(M⁻¹, sqrt.(M⁻¹), similar(M⁻¹))
+    return DiagEuclideanMetric(M⁻¹, sqrt.(M⁻¹))
 end
 DiagEuclideanMetric(::Type{T}, sz) where {T} = DiagEuclideanMetric(ones(T, sz...))
 DiagEuclideanMetric(sz) = DiagEuclideanMetric(Float64, sz)
@@ -60,24 +58,20 @@ Base.show(io::IO, dem::DiagEuclideanMetric) =
 
 struct DenseEuclideanMetric{
     T,
-    AV<:AbstractVecOrMat{T},
-    AM<:Union{AbstractMatrix{T},AbstractArray{T,3}},
+    AM<:AbstractMatrix{T},
     TcholM⁻¹<:UpperTriangular{T},
 } <: AbstractMetric
     # Inverse of the mass matrix
     M⁻¹::AM
     # U of the Cholesky decomposition of the mass matrix
     cholM⁻¹::TcholM⁻¹
-    # Pre-allocation for intermediate variables
-    _temp::AV
 end
 
 # TODO: make dense mass matrix support matrix-mode parallel
 function DenseEuclideanMetric(
-    M⁻¹::Union{AbstractMatrix{T},AbstractArray{T,3}},
+    M⁻¹::AbstractMatrix{T},
 ) where {T<:AbstractFloat}
-    _temp = Vector{T}(undef, Base.front(size(M⁻¹)))
-    return DenseEuclideanMetric(M⁻¹, cholesky(Symmetric(M⁻¹)).U, _temp)
+    return DenseEuclideanMetric(M⁻¹, cholesky(Symmetric(M⁻¹)).U)
 end
 DenseEuclideanMetric(::Type{T}, D::Int) where {T} = DenseEuclideanMetric(Matrix{T}(I, D, D))
 DenseEuclideanMetric(D::Int) = DenseEuclideanMetric(Float64, D)
@@ -88,7 +82,7 @@ DenseEuclideanMetric(sz::Tuple{Int}) = DenseEuclideanMetric(Float64, sz)
 renew(ue::DenseEuclideanMetric, M⁻¹) = DenseEuclideanMetric(M⁻¹)
 
 Base.eltype(::DenseEuclideanMetric{T}) where {T} = T
-Base.size(e::DenseEuclideanMetric, dim...) = size(e._temp, dim...)
+Base.size(e::DenseEuclideanMetric, dim...) = size(e.M⁻¹, dim...)
 Base.show(io::IO, dem::DenseEuclideanMetric) =
     print(io, "DenseEuclideanMetric(diag=$(_string_M⁻¹(dem.M⁻¹)))")
 

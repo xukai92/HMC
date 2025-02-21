@@ -128,30 +128,47 @@ neg_energy(
     h::Hamiltonian{<:UnitEuclideanMetric,<:GaussianKinetic},
     r::T,
     θ::T,
-) where {T<:AbstractMatrix} = -vec(sum(abs2, r; dims = 1)) / 2
-
-neg_energy(
-    h::Hamiltonian{<:DiagEuclideanMetric,<:GaussianKinetic},
+) where {T<:AbstractMatrix} = map(ri -> -sum(abs2, ri) / 2, eachcol(r))
+energy(
+    h::Hamiltonian{<:UnitEuclideanMetric,<:GaussianKinetic},
     r::T,
     θ::T,
-) where {T<:AbstractVector} = -sum(abs2.(r) .* h.metric.M⁻¹) / 2
+) where {T<:AbstractMatrix} = map(ri -> sum(abs2, ri) / 2, eachcol(r))
+
 
 neg_energy(
-    h::Hamiltonian{<:DiagEuclideanMetric,<:GaussianKinetic},
+    h::Hamiltonian{<:DiagEuclideanMetric{<:Any,<:AbstractVector},<:GaussianKinetic},
     r::T,
     θ::T,
-) where {T<:AbstractMatrix} = -vec(sum(abs2.(r) .* h.metric.M⁻¹; dims = 1)) / 2
+) where {T<:AbstractVector} = -dot(r, Diagonal(h.metric.M⁻¹), r) / 2
+function neg_energy(
+    h::Hamiltonian{<:DiagEuclideanMetric{<:Any,<:AbstractMatrix},<:GaussianKinetic},
+    r::T,
+    θ::T,
+) where {T<:AbstractMatrix}
+    map(eachcol(h.metric.M⁻¹), eachcol(r)) do M⁻¹i, ri
+        return -dot(ri, Diagonal(M⁻¹i), ri) / 2
+    end
+end
+function energy(
+    h::Hamiltonian{<:DiagEuclideanMetric{<:Any,<:AbstractMatrix},<:GaussianKinetic},
+    r::T,
+    θ::T,
+) where {T<:AbstractMatrix}
+    map(eachcol(h.metric.M⁻¹), eachcol(r)) do M⁻¹i, ri
+        return dot(ri, Diagonal(M⁻¹i), ri) / 2
+    end
+end
 
 function neg_energy(
     h::Hamiltonian{<:DenseEuclideanMetric,<:GaussianKinetic},
     r::T,
     θ::T,
-) where {T<:AbstractVecOrMat}
-    mul!(h.metric._temp, h.metric.M⁻¹, r)
-    return -dot(r, h.metric._temp) / 2
+) where {T<:AbstractVector}
+    return -dot(r, h.metric.M⁻¹, r) / 2
 end
 
-energy(args...) = -neg_energy(args...)
+energy(h::Hamiltonian, r::T, θ::T) where {T<:AbstractVector} = -neg_energy(h, r, θ)
 
 ####
 #### Momentum refreshment
