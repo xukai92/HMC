@@ -99,9 +99,9 @@ It contains the slice variable and the number of acceptable condidates in the tr
 
 $(TYPEDFIELDS)
 """
-struct SliceTS{F<:AbstractFloat} <: AbstractTrajectorySampler
+struct SliceTS{F<:AbstractFloat,P<:PhasePoint} <: AbstractTrajectorySampler
     "Sampled candidate `PhasePoint`."
-    zcand::PhasePoint
+    zcand::P
     "Slice variable in log-space."
     ℓu::F
     "Number of acceptable candidates, i.e. those with probability larger than slice variable `u`."
@@ -120,9 +120,9 @@ It contains the weight of the tree, defined as the total probabilities of the le
 
 $(TYPEDFIELDS)
 """
-struct MultinomialTS{F<:AbstractFloat} <: AbstractTrajectorySampler
+struct MultinomialTS{F<:AbstractFloat,P<:PhasePoint} <: AbstractTrajectorySampler
     "Sampled candidate `PhasePoint`."
-    zcand::PhasePoint
+    zcand::P
     "Total energy for the given tree, i.e. the sum of energies of all leaves."
     ℓw::F
 end
@@ -499,13 +499,13 @@ end
 """
 A full binary tree trajectory with only necessary leaves and information stored.
 """
-struct BinaryTree
-    zleft::Any   # left most leaf node
-    zright::Any  # right most leaf node
-    ts::Any      # turn statistics
-    sum_α::Any   # MH stats, i.e. sum of MH accept prob for all leapfrog steps
-    nα::Any      # total # of leap frog steps, i.e. phase points in a trajectory
-    ΔH_max::Any  # energy in tree with largest absolute different from initial energy
+struct BinaryTree{T<:Real,P<:PhasePoint,TS<:TurnStatistic}
+    zleft::P     # left most leaf node
+    zright::P    # right most leaf node
+    ts::TS       # turn statistics
+    sum_α::T     # MH stats, i.e. sum of MH accept prob for all leapfrog steps
+    nα::Int      # total # of leap frog steps, i.e. phase points in a trajectory
+    ΔH_max::T    # energy in tree with largest absolute different from initial energy
 end
 
 """

@@ -71,12 +71,12 @@ References
 Hoffman, M. D., & Gelman, A. (2014). The No-U-Turn Sampler: adaptively setting path lengths in Hamiltonian Monte Carlo. Journal of Machine Learning Research, 15(1), 1593-1623.
 Nesterov, Y. (2009). Primal-dual subgradient methods for convex problems. Mathematical programming, 120(1), 221-259.
 """
-struct NesterovDualAveraging{T<:AbstractFloat} <: StepSizeAdaptor
+struct NesterovDualAveraging{T<:AbstractFloat,S<:AbstractScalarOrVec{T}} <: StepSizeAdaptor
     γ::T
     t_0::T
     κ::T
     δ::T
-    state::DAState{<:AbstractScalarOrVec{T}}
+    state::DAState{S}
 end
 Base.show(io::IO, a::NesterovDualAveraging) = print(
     io,

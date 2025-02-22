@@ -144,15 +144,16 @@ For more information, please view the following paper ([arXiv link](https://arxi
   setting path lengths in Hamiltonian Monte Carlo." Journal of Machine Learning
   Research 15, no. 1 (2014): 1593-1623.
 """
-struct HMCDA{T<:Real} <: AbstractHMCSampler
+struct HMCDA{T<:Real,I<:Union{Symbol,AbstractIntegrator},M<:Union{Symbol,AbstractMetric}} <:
+       AbstractHMCSampler
     "Target acceptance rate for dual averaging."
     δ::T
     "Target leapfrog length."
     λ::T
     "Choice of integrator, specified either using a `Symbol` or [`AbstractIntegrator`](@ref)"
-    integrator::Union{Symbol,AbstractIntegrator}
+    integrator::I
     "Choice of initial metric;  `Symbol` means it is automatically initialised. The metric type will be preserved during automatic initialisation and adaption."
-    metric::Union{Symbol,AbstractMetric}
+    metric::M
 end
 
 function HMCDA(δ, λ; integrator = :leapfrog, metric = :diagonal)
