@@ -117,7 +117,7 @@ phasepoint(
     rng::Union{AbstractRNG,AbstractVector{<:AbstractRNG}},
     θ::AbstractVecOrMat{T},
     h::Hamiltonian,
-) where {T<:Real} = phasepoint(h, θ, rand(rng, h.metric, h.kinetic, θ))
+) where {T<:Real} = phasepoint(h, θ, rand_momentum(rng, h.metric, h.kinetic, θ))
 
 # To change L191 of hamiltonian.jl
 refresh(
@@ -125,7 +125,7 @@ refresh(
     ::FullMomentumRefreshment,
     h::Hamiltonian,
     z::PhasePoint,
-) = phasepoint(h, z.θ, rand(rng, h.metric, h.kinetic, z.θ))
+) = phasepoint(h, z.θ, rand_momentum(rng, h.metric, h.kinetic, z.θ))
 
 # To change L215 of hamiltonian.jl
 refresh(
@@ -136,16 +136,8 @@ refresh(
 ) = phasepoint(
     h,
     z.θ,
-    ref.α * z.r + sqrt(1 - ref.α^2) * rand(rng, h.metric, h.kinetic, z.θ),
+    ref.α * z.r + sqrt(1 - ref.α^2) * rand_momentum(rng, h.metric, h.kinetic, z.θ),
 )
-
-# To change L146 of metric.jl
-# Ignore θ by default (i.e. not position-dependent)
-Base.rand(rng::AbstractRNG, metric::AbstractMetric, kinetic, θ) =
-    rand_momentum(rng, metric, kinetic)    # this disambiguity is required by Random.rand
-Base.rand(rng::AbstractVector{<:AbstractRNG}, metric::AbstractMetric, kinetic, θ) =
-    rand_momentum(rng, metric, kinetic)
-Base.rand(metric::AbstractMetric, kinetic, θ) = rand(Random.default_rng(), metric, kinetic)
 
 ### metric.jl
 
@@ -212,7 +204,7 @@ function rand_momentum(
     rng::Union{AbstractRNG,AbstractVector{<:AbstractRNG}},
     metric::DenseRiemannianMetric{T},
     kinetic,
-    θ,
+    θ::AbstractVecOrMat,
 ) where {T}
     r = _randn(rng, T, size(metric)...)
     G⁻¹ = inv(metric.map(metric.G(θ)))
@@ -220,15 +212,6 @@ function rand_momentum(
     ldiv!(chol.U, r)
     return r
 end
-
-Base.rand(rng::AbstractRNG, metric::AbstractRiemannianMetric, kinetic, θ) =
-    rand_momentum(rng, metric, kinetic, θ)
-Base.rand(
-    rng::AbstractVector{<:AbstractRNG},
-    metric::AbstractRiemannianMetric,
-    kinetic,
-    θ,
-) = rand_momentum(rng, metric, kinetic, θ)
 
 ### hamiltonian.jl
 

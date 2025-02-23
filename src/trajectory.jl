@@ -773,7 +773,7 @@ function find_good_stepsize(
     a_min, a_cross, a_max = T(0.25), T(0.5), T(0.75) # minimal, crossing, maximal accept ratio
     d = T(2.0)
     # Create starting phase point
-    r = rand(rng, h.metric, h.kinetic) # sample momentum variable
+    r = rand_momentum(rng, h.metric, h.kinetic, θ) # sample momentum variable
     z = phasepoint(h, θ, r)
     H = energy(z)
 

@@ -161,7 +161,7 @@ phasepoint(
     rng::Union{AbstractRNG,AbstractVector{<:AbstractRNG}},
     θ::AbstractVecOrMat{T},
     h::Hamiltonian,
-) where {T<:Real} = phasepoint(h, θ, rand(rng, h.metric, h.kinetic, θ))
+) where {T<:Real} = phasepoint(h, θ, rand_momentum(rng, h.metric, h.kinetic, θ))
 
 abstract type AbstractMomentumRefreshment end
 
@@ -173,7 +173,7 @@ refresh(
     ::FullMomentumRefreshment,
     h::Hamiltonian,
     z::PhasePoint,
-) = phasepoint(h, z.θ, rand(rng, h.metric, h.kinetic, z.θ))
+) = phasepoint(h, z.θ, rand_momentum(rng, h.metric, h.kinetic, z.θ))
 
 """
 $(TYPEDEF)
@@ -204,5 +204,5 @@ refresh(
 ) = phasepoint(
     h,
     z.θ,
-    ref.α * z.r + sqrt(1 - ref.α^2) * rand(rng, h.metric, h.kinetic, z.θ),
+    ref.α * z.r + sqrt(1 - ref.α^2) * rand_momentum(rng, h.metric, h.kinetic, z.θ),
 )
